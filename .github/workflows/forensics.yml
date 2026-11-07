@@ -2,9 +2,9 @@ name: CI & Incident Forensics
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ main ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ main ]
 
 jobs:
   forensics-check:
@@ -17,23 +17,60 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: '3.11'
 
-      - name: Install dependencies & SentryTrace
+      - name: Install dependencies
         run: |
-          pip install --upgrade pip
+          python -m pip install --upgrade pip
           pip install -e .
+          pip install pytest pytest-mock
+
+      - name: Run Test Suite
+        run: |
+          pytest tests/ -v
+
+      - name: Start Mock LLM Endpoint
+        run: |
+          python -c '
+          from http.server import HTTPServer, BaseHTTPRequestHandler
+          import json
+
+          class MockHandler(BaseHTTPRequestHandler):
+              def do_POST(self):
+                  response = {
+                      "id": "chatcmpl-mock",
+                      "object": "chat.completion",
+                      "choices": [{
+                          "message": {
+                              "content": json.dumps({
+                                  "incident_name": "Database Connection Pool Exhaustion",
+                                  "root_cause": "Active connections reached pool limit causing timeout exceptions.",
+                                  "culprit_trigger_lines": [5, 6],
+                                  "remediation_steps": ["Scale pool size", "Audit connection leaks"]
+                              })
+                          }
+                      }]
+                  }
+                  self.send_response(200)
+                  self.send_header("Content-Type", "application/json")
+                  self.end_headers()
+                  self.wfile.write(json.dumps(response).encode("utf-8"))
+
+              def log_message(self, format, *args):
+                  return
+
+          server = HTTPServer(("127.0.0.1", 11434), MockHandler)
+          server.serve_forever()
+          ' &
+          sleep 2
 
       - name: Run Forensic Scan on Incident Logs
         run: |
-          # Executes SentryTrace in CI mode and saves structured JSON telemetry
           sentrytrace scan logs/server_crash.log --json > incident_report.json
-          
-          # Print the report to the pipeline logs
           cat incident_report.json
 
       - name: Upload Incident Report Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: incident-forensics-report
+          name: incident-report
           path: incident_report.json
