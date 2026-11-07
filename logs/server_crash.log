@@ -1,0 +1,7 @@
+2026-10-15T14:22:01.102Z INFO [trace_id=req-9812-checkout] [cart-service] Processing checkout request for user_id=9012
+2026-10-15T14:22:01.215Z INFO [trace_id=req-9812-checkout] [inventory-service] Checking stock availability for item_id=sku-401
+2026-10-15T14:22:01.350Z INFO [trace_id=req-9812-checkout] [payment-service] Reserving authorization token from gateway
+2026-10-15T14:22:02.100Z WARN [trace_id=req-9812-checkout] [db-pool] Connection pool utilization at 98% (98/100 connections active)
+2026-10-15T14:22:32.105Z ERROR [trace_id=req-9812-checkout] [db-pool] PoolAcquireTimeoutException: connection pool exhausted after 30000ms. Active workers: 100, Waiting threads: 42
+2026-10-15T14:22:32.108Z ERROR [trace_id=req-9812-checkout] [http-server] status_code=500 InternalServerError POST /api/v1/checkout - connection timeout
+2026-10-15T14:22:33.000Z INFO [health-check] Ping received, system status DEGRADED
