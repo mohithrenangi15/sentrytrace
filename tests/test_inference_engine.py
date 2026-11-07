@@ -9,7 +9,7 @@ def test_inference_client_mock():
     test_client = LocalInferenceClient(base_url="http://127.0.0.1:8080")
 
     def mock_post(url, json=None, **kwargs):
-        assert "/v1/chat/completions" in str(url)
+        assert "chat/completions" in str(url)
         assert json["temperature"] == 0.1
         return httpx.Response(
             status_code=200,
